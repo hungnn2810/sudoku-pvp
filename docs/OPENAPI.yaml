@@ -1,0 +1,51 @@
+openapi: 3.0.3
+info:
+  title: Sudoku Battle Arena API
+  version: 1.0.0
+servers:
+  - url: /api/v1
+paths:
+  /auth/guest:
+    post:
+      summary: Guest Login
+  /auth/google:
+    post:
+      summary: Google Login
+  /auth/apple:
+    post:
+      summary: Apple Login
+  /me:
+    get:
+      summary: Get Profile
+    patch:
+      summary: Update Profile
+  /wallet:
+    get:
+      summary: Get Wallet
+  /wallet/transactions:
+    get:
+      summary: Transactions
+  /matches:
+    get:
+      summary: Match History
+  /matches/{id}:
+    get:
+      summary: Match Detail
+  /ranking/me:
+    get:
+      summary: My Rank
+  /ranking/leaderboard:
+    get:
+      summary: Leaderboard
+  /missions:
+    get:
+      summary: Missions
+  /shop/items:
+    get:
+      summary: Shop Items
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
