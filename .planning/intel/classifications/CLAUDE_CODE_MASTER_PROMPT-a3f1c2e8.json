@@ -1,0 +1,31 @@
+{
+  "source_path": "J:\\sources\\sudoku-pvp\\docs\\CLAUDE_CODE_MASTER_PROMPT.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "CLAUDE CODE MASTER PROMPT",
+  "summary": "AI assistant configuration defining coding standards, architecture rules, and code-generation order for the Sudoku Battle Arena backend.",
+  "scope": [
+    "Sudoku Battle Arena",
+    "Go",
+    "Gin",
+    "PostgreSQL",
+    "sqlc",
+    "Redis",
+    "RabbitMQ",
+    "WebSocket",
+    "repository pattern",
+    "OpenTelemetry"
+  ],
+  "cross_refs": [
+    "docs/BACKEND_ARCHITECTURE.md",
+    "docs/DOMAIN_MODEL.md",
+    "docs/DATABASE_SCHEMA.md",
+    "docs/EVENT_CATALOG.md",
+    "docs/BATTLE_ENGINE_SPEC.md",
+    "docs/MATCHMAKING_SPEC.md"
+  ],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

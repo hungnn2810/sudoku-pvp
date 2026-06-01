@@ -1,0 +1,23 @@
+{
+  "source_path": "J:\\sources\\sudoku-pvp\\docs\\API_CONTRACT.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "API Contract",
+  "summary": "Defines all HTTP REST endpoints and WebSocket client/server events for the Sudoku PvP backend API.",
+  "scope": [
+    "Auth",
+    "User",
+    "Wallet",
+    "Sudoku",
+    "Match History",
+    "Ranking",
+    "Mission",
+    "Shop",
+    "WebSocket"
+  ],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

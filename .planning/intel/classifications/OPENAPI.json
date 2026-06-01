@@ -1,0 +1,28 @@
+{
+  "source_path": "J:\\sources\\sudoku-pvp\\docs\\OPENAPI.yaml",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "Sudoku Battle Arena API",
+  "summary": "OpenAPI 3.0.3 specification defining all REST endpoints, security schemes, and API contracts for the Sudoku Battle Arena backend.",
+  "scope": [
+    "authentication",
+    "guest login",
+    "Google login",
+    "Apple login",
+    "user profile",
+    "wallet",
+    "transactions",
+    "match history",
+    "ranking",
+    "leaderboard",
+    "missions",
+    "shop",
+    "JWT bearer auth",
+    "REST API"
+  ],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

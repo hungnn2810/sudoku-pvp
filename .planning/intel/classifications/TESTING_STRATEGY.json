@@ -1,0 +1,23 @@
+{
+  "source_path": "J:\\sources\\sudoku-pvp\\docs\\TESTING_STRATEGY.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "TESTING_STRATEGY",
+  "summary": "Defines the testing pyramid, coverage targets, integration test tooling, load scenarios, and critical test cases for Sudoku PvP.",
+  "scope": [
+    "Battle Engine",
+    "Ranking",
+    "Wallet",
+    "PostgreSQL",
+    "Redis",
+    "RabbitMQ",
+    "WebSocket",
+    "matchmaking",
+    "load testing"
+  ],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

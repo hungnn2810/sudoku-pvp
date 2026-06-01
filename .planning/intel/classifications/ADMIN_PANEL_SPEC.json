@@ -1,0 +1,24 @@
+{
+  "source_path": "J:\\sources\\sudoku-pvp\\docs\\ADMIN_PANEL_SPEC.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "ADMIN_PANEL_SPEC.md",
+  "summary": "Technical specification for the administration portal covering user management, match monitoring, economy, missions, shop, audit logs, and admin roles.",
+  "scope": [
+    "admin panel",
+    "dashboard",
+    "user management",
+    "puzzle management",
+    "match monitoring",
+    "economy management",
+    "mission management",
+    "shop management",
+    "audit logs",
+    "admin roles"
+  ],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

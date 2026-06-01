@@ -1,0 +1,25 @@
+{
+  "source_path": "J:\\sources\\sudoku-pvp\\docs\\PRODUCT_REQUIREMENTS.MD",
+  "type": "PRD",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "Product Requirements Document (PRD) — Sudoku Battle Arena",
+  "summary": "Defines MVP scope, user personas, functional requirements, success metrics, and non-functional targets for the Sudoku Battle Arena competitive game.",
+  "scope": [
+    "Authentication",
+    "Solo mode",
+    "Bot Battle",
+    "PvP matchmaking",
+    "Room",
+    "Coin economy",
+    "Wallet",
+    "Ranking",
+    "Player profile",
+    "Match history",
+    "Leaderboard"
+  ],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

@@ -1,0 +1,13 @@
+{
+  "source_path": "J:\\sources\\sudoku-pvp\\docs\\DDD_AGGREGATE_RULES.md",
+  "type": "DOC",
+  "confidence": "medium",
+  "manifest_override": false,
+  "title": "DDD_AGGREGATE_RULES",
+  "summary": "Defines Domain-Driven Design aggregate boundaries and cross-aggregate event rules for User, Wallet, Match, Mission, and ShopItem.",
+  "scope": ["User", "Wallet", "Match", "Mission", "ShopItem", "Ranking", "domain events", "aggregates"],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": "No frontmatter, user stories, endpoint tables, or ADR status/decision sections found. Content is prose rules describing aggregate ownership and cross-aggregate event flows — structural design guidance treated as DOC. Could be argued as SPEC if aggregate contracts are considered implementation constraints, but signals lean toward design context documentation."
+}

@@ -1,0 +1,33 @@
+{
+  "source_path": "J:\\sources\\sudoku-pvp\\docs\\BACKEND_ARCHITECTURE.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "Sudoku Battle Arena - Backend Architecture",
+  "summary": "Technical specification for the Sudoku PvP backend covering stack, domain modules, database schemas, Redis design, WebSocket contracts, battle engine rules, and SLOs.",
+  "scope": [
+    "auth",
+    "user",
+    "wallet",
+    "sudoku",
+    "matchmaking",
+    "room",
+    "battle",
+    "ranking",
+    "mission",
+    "shop",
+    "analytics",
+    "anti-cheat",
+    "reconnect",
+    "WebSocket",
+    "PostgreSQL",
+    "Redis",
+    "RabbitMQ",
+    "OpenTelemetry",
+    "Docker"
+  ],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

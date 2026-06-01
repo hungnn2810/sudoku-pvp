@@ -1,0 +1,31 @@
+{
+  "source_path": "J:\\sources\\sudoku-pvp\\docs\\EVENT_CATALOG.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "Event Catalog",
+  "summary": "Defines all RabbitMQ message broker event contracts and WebSocket event protocol definitions for the Sudoku PvP system.",
+  "scope": [
+    "RabbitMQ",
+    "game.events exchange",
+    "MatchStarted",
+    "MatchFinished",
+    "WalletTransactionCreated",
+    "RankChanged",
+    "MissionCompleted",
+    "ShopItemPurchased",
+    "WebSocket events",
+    "Battle Module",
+    "Ranking",
+    "Wallet",
+    "Mission",
+    "Analytics",
+    "matchmaking",
+    "room",
+    "battle"
+  ],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

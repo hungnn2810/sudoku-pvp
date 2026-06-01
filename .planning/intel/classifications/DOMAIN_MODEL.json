@@ -1,0 +1,29 @@
+{
+  "source_path": "J:\\sources\\sudoku-pvp\\docs\\DOMAIN_MODEL.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "Domain Model",
+  "summary": "Defines DDD aggregates, Go data structs, and invariants for User, Wallet, Match, Ranking, Mission, and Shop domains in Sudoku Battle Arena.",
+  "scope": [
+    "User",
+    "Wallet",
+    "WalletTransaction",
+    "SudokuPuzzle",
+    "Match",
+    "MatchPlayer",
+    "MatchMove",
+    "RankTier",
+    "RankProfile",
+    "Mission",
+    "UserMission",
+    "ShopItem",
+    "InventoryItem",
+    "Matchmaking",
+    "Ranking"
+  ],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

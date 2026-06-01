@@ -1,0 +1,29 @@
+{
+  "source_path": "J:\\sources\\sudoku-pvp\\docs\\BATTLE_ENGINE_SPEC.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "BATTLE_ENGINE_SPEC.md",
+  "summary": "Authoritative technical specification for the Sudoku Battle Arena battle engine, covering move validation, scoring, combo, lifecycle state machine, WebSocket event contracts, and SLOs.",
+  "scope": [
+    "battle engine",
+    "move validation",
+    "scoring system",
+    "combo system",
+    "match lifecycle",
+    "match state machine",
+    "Redis battle state",
+    "WebSocket events",
+    "disconnect and reconnect handling",
+    "anti-cheat enforcement",
+    "rate limiting",
+    "performance SLOs",
+    "puzzle completion",
+    "winner determination",
+    "event emission"
+  ],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}
