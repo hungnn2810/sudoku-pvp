@@ -1,0 +1,25 @@
+{
+  "phase": "01",
+  "phase_name": "Platform Foundation",
+  "areas_completed": ["Config loading", "Library selections", "Migration tooling"],
+  "areas_remaining": ["Local dev setup"],
+  "decisions": {
+    "Config loading": {
+      "env_loading": "godotenv + Config struct (load .env in dev, os.Getenv in typed struct)",
+      "config_location": "internal/config/config.go, passed via dependency injection",
+      "config_validation": "Fail fast at startup — service refuses to start with missing/invalid config",
+      "env_file": ".env.example committed, .env gitignored"
+    },
+    "Library selections": {
+      "logger": "zerolog (rs/zerolog)",
+      "redis_client": "go-redis/v9 (redis/go-redis)",
+      "rabbitmq_client": "rabbitmq/amqp091-go with thin wrapper in internal/rabbitmq/",
+      "postgres_driver": "pgx/v5 with sqlc emit_interface: pgx"
+    },
+    "Migration tooling": {
+      "tool": "goose (pressly/goose)",
+      "startup_behavior": "Auto-run on startup (run pending migrations on boot before accepting traffic)",
+      "file_format": "SQL files only (up/down .sql files)"
+    }
+  }
+}
