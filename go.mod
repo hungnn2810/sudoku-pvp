@@ -1,6 +1,6 @@
 module sudoku-pvp
 
-go 1.26.4
+go 1.23.0
 
 require (
 	github.com/gin-gonic/gin v1.12.0
