@@ -22,6 +22,12 @@ func NewPool(ctx context.Context, cfg config.PostgresConfig) (*pgxpool.Pool, err
 		return nil, fmt.Errorf("pgxpool parse config: %w", err)
 	}
 
+	// Validate pool sizing before applying — pgxpool silently falls back to its
+	// own defaults when MaxConns=0, which masks misconfiguration (WR-02).
+	if cfg.MaxConns <= 0 {
+		return nil, fmt.Errorf("postgres max_conns must be > 0, got %d", cfg.MaxConns)
+	}
+
 	// Production-grade pool settings per RESEARCH.md Pattern 2.
 	poolCfg.MaxConns = cfg.MaxConns
 	poolCfg.MinConns = cfg.MinConns
