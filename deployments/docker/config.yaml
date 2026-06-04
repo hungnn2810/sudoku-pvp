@@ -18,4 +18,9 @@ rabbitmq:
 telemetry:
   otlp_endpoint: ""
 
+auth:
+  jwt_secret: "change-me-in-development"
+  access_token_ttl: "15m"
+  refresh_token_ttl: "720h"
+
 log_level: debug

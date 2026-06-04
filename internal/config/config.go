@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -37,6 +38,15 @@ type TelemetryConfig struct {
 	OTLPEndpoint string `mapstructure:"otlp_endpoint"`
 }
 
+// AuthConfig holds JWT signing and token TTL settings.
+// D-04: HS256 signing; secret from env var SUDOKU_AUTH_JWT_SECRET.
+// D-02: AccessTokenTTL default 15 minutes; RefreshTokenTTL default 30 days.
+type AuthConfig struct {
+	JWTSecret       string        `mapstructure:"jwt_secret"`
+	AccessTokenTTL  time.Duration `mapstructure:"access_token_ttl"`
+	RefreshTokenTTL time.Duration `mapstructure:"refresh_token_ttl"`
+}
+
 // Config is the root typed configuration struct.
 // All sub-configs are populated by Load() from env vars and/or a YAML file.
 type Config struct {
@@ -45,6 +55,7 @@ type Config struct {
 	Redis     RedisConfig     `mapstructure:"redis"`
 	RabbitMQ  RabbitMQConfig  `mapstructure:"rabbitmq"`
 	Telemetry TelemetryConfig `mapstructure:"telemetry"`
+	Auth      AuthConfig      `mapstructure:"auth"`
 	LogLevel  string          `mapstructure:"log_level"`
 }
 
@@ -87,6 +98,15 @@ func Load() (*Config, error) {
 	}
 	if cfg.Server.Port <= 0 || cfg.Server.Port > 65535 {
 		return nil, fmt.Errorf("server.port must be between 1 and 65535, got %d", cfg.Server.Port)
+	}
+	if cfg.Auth.JWTSecret == "" {
+		return nil, fmt.Errorf("auth.jwt_secret is required")
+	}
+	if cfg.Auth.AccessTokenTTL <= 0 {
+		cfg.Auth.AccessTokenTTL = 15 * time.Minute
+	}
+	if cfg.Auth.RefreshTokenTTL <= 0 {
+		cfg.Auth.RefreshTokenTTL = 30 * 24 * time.Hour
 	}
 
 	return &cfg, nil
