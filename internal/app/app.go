@@ -169,6 +169,12 @@ func wsPlaceholderHandler(c *gin.Context) {
 	c.JSON(http.StatusServiceUnavailable, gin.H{"message": "websocket not yet implemented"})
 }
 
+// Router returns the underlying http.Handler for use in tests.
+// Integration tests use httptest.NewServer(a.Router()) to exercise the full routing stack.
+func (a *App) Router() http.Handler {
+	return a.router
+}
+
 // Run starts the HTTP server on addr (e.g. ":8080").
 // Blocks until the server is shut down or returns an unexpected error.
 // Returns nil on clean shutdown (http.ErrServerClosed) or a non-nil error otherwise.
