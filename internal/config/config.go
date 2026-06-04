@@ -58,6 +58,9 @@ func Load() (*Config, error) {
 	v.AddConfigPath("./deployments/docker")
 	v.AddConfigPath(".")
 
+	// Defaults — applied before env vars and file values.
+	v.SetDefault("server.port", 8080)
+
 	// Env vars override file values — 12-factor.
 	// SUDOKU_POSTGRES_DSN maps to postgres.dsn, etc.
 	v.SetEnvPrefix("SUDOKU")
@@ -81,6 +84,9 @@ func Load() (*Config, error) {
 	}
 	if cfg.RabbitMQ.URL == "" {
 		return nil, fmt.Errorf("rabbitmq URL is required")
+	}
+	if cfg.Server.Port <= 0 || cfg.Server.Port > 65535 {
+		return nil, fmt.Errorf("server.port must be between 1 and 65535, got %d", cfg.Server.Port)
 	}
 
 	return &cfg, nil
