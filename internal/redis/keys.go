@@ -2,6 +2,7 @@ package redis
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -24,8 +25,16 @@ func UserConnectionKey(userID uuid.UUID) string {
 // Format: "queue:{region}:{difficulty}:{stake}"
 // Type: Sorted Set, score = join timestamp
 // Per DEC-015: 3-segment key (region, difficulty, stake).
-func QueueKey(region, difficulty, stake string) string {
-	return fmt.Sprintf("queue:%s:%s:%s", region, difficulty, stake)
+//
+// Returns an error if any segment contains characters that would corrupt
+// the key namespace (`:`, `*`, `?`). Callers must validate before use.
+func QueueKey(region, difficulty, stake string) (string, error) {
+	for _, s := range []string{region, difficulty, stake} {
+		if strings.ContainsAny(s, ":*?") {
+			return "", fmt.Errorf("invalid QueueKey segment: %q", s)
+		}
+	}
+	return fmt.Sprintf("queue:%s:%s:%s", region, difficulty, stake), nil
 }
 
 // RateMoveKey returns the Redis key for rate-limiting user moves.

@@ -36,10 +36,35 @@ func TestUserConnectionKey(t *testing.T) {
 }
 
 func TestQueueKey(t *testing.T) {
-	got := QueueKey("asia", "medium", "100")
+	got, err := QueueKey("asia", "medium", "100")
+	if err != nil {
+		t.Fatalf("QueueKey(asia, medium, 100) returned unexpected error: %v", err)
+	}
 	want := "queue:asia:medium:100"
 	if got != want {
 		t.Errorf("QueueKey(asia, medium, 100) = %q; want %q", got, want)
+	}
+}
+
+func TestQueueKey_InvalidSegments(t *testing.T) {
+	cases := []struct {
+		name                string
+		region, difficulty, stake string
+	}{
+		{"colon in region", "asia:match", "medium", "100"},
+		{"colon in difficulty", "asia", "med:ium", "100"},
+		{"colon in stake", "asia", "medium", "1:00"},
+		{"asterisk in region", "asia*", "medium", "100"},
+		{"question mark in stake", "asia", "medium", "100?"},
+		{"empty with colon", ":", "medium", "100"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := QueueKey(tc.region, tc.difficulty, tc.stake)
+			if err == nil {
+				t.Errorf("QueueKey(%q, %q, %q) expected error, got key %q", tc.region, tc.difficulty, tc.stake, got)
+			}
+		})
 	}
 }
 
