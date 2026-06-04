@@ -73,3 +73,17 @@ match:{matchId}:reconnect:{userId}
 
 TTL:
 30 seconds
+
+---
+
+## Refresh Token
+
+Key:
+refresh:{userId}
+
+TTL:
+30 days (720 hours)
+
+Stores:
+- opaque refresh token string (single token per user, per D-07)
+- overwritten on each new login and each token rotation (D-01, D-03)
