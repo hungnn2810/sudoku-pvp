@@ -35,8 +35,9 @@ func (p *Publisher) Publish(ctx context.Context, routingKey string, body []byte)
 		false,              // mandatory
 		false,              // immediate
 		amqp.Publishing{
-			ContentType: "application/json",
-			Body:        body,
+			ContentType:  "application/json",
+			DeliveryMode: amqp.Persistent, // survive RabbitMQ restart (WR-03)
+			Body:         body,
 		},
 	)
 	if err != nil {
