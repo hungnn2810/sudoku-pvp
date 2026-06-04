@@ -1,0 +1,36 @@
+run:
+  timeout: 5m
+  skip-dirs:
+    - db/sqlc
+    - vendor
+
+linters:
+  enable:
+    - gofmt
+    - govet
+    - errcheck
+    - staticcheck
+    - unused
+    - forbidigo
+    - noctx
+
+linters-settings:
+  forbidigo:
+    forbid:
+      - pattern: "^fmt\\.Println$"
+        msg: "Use zerolog structured logging, not fmt.Println (REQ-026)"
+      - pattern: "^fmt\\.Printf$"
+        msg: "Use zerolog structured logging, not fmt.Printf (REQ-026)"
+      - pattern: "^fmt\\.Print$"
+        msg: "Use zerolog structured logging, not fmt.Print (REQ-026)"
+      - pattern: "^log\\.Println$"
+        msg: "Use zerolog structured logging, not stdlib log (REQ-026)"
+
+issues:
+  exclude-rules:
+    - path: "_test\\.go"
+      linters:
+        - forbidigo
+    - path: "db/sqlc/"
+      linters:
+        - all

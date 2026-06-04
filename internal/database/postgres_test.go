@@ -4,43 +4,39 @@ package database_test
 
 import (
 	"context"
-	"database/sql"
 	"testing"
 	"time"
 
-	tcpostgres "github.com/testcontainers/testcontainers-go/modules/postgres"
+	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
+	tcpostgres "github.com/testcontainers/testcontainers-go/modules/postgres"
 
 	"sudoku-pvp/internal/config"
 	"sudoku-pvp/internal/database"
+	"sudoku-pvp/internal/testutil"
 )
 
-// startPostgresContainer starts a real postgres container for integration tests.
-// Returns the DSN and a cleanup function.
-func startPostgresContainer(t *testing.T) (string, func()) {
+// startRawPostgresContainer starts a plain Postgres container without running migrations.
+// Returns the DSN and a cleanup function. Useful for tests that exercise RunMigrations directly.
+func startRawPostgresContainer(t *testing.T) (string, func()) {
 	t.Helper()
+	testcontainers.SkipIfProviderIsNotHealthy(t)
 
 	ctx := context.Background()
-
-	pgContainer, err := tcpostgres.Run(ctx,
+	ctr, err := tcpostgres.Run(ctx,
 		"postgres:17-alpine",
 		tcpostgres.WithDatabase("sudoku_test"),
 		tcpostgres.WithUsername("test"),
 		tcpostgres.WithPassword("test"),
 		tcpostgres.BasicWaitStrategies(),
 	)
-	if err != nil {
-		t.Skipf("skipping integration test: failed to start postgres container: %v", err)
-	}
+	require.NoError(t, err, "failed to start postgres container")
 
-	connStr, err := pgContainer.ConnectionString(ctx, "sslmode=disable")
-	if err != nil {
-		_ = testcontainers.TerminateContainer(pgContainer)
-		t.Fatalf("failed to get connection string: %v", err)
-	}
+	connStr, err := ctr.ConnectionString(ctx, "sslmode=disable")
+	require.NoError(t, err, "failed to get connection string")
 
 	cleanup := func() {
-		_ = testcontainers.TerminateContainer(pgContainer)
+		require.NoError(t, testcontainers.TerminateContainer(ctr), "failed to terminate container")
 	}
 
 	return connStr, cleanup
@@ -49,7 +45,7 @@ func startPostgresContainer(t *testing.T) (string, func()) {
 // TestNewPool_Ping verifies that NewPool returns a non-nil pool and ping succeeds
 // when given a valid DSN to a running postgres container.
 func TestNewPool_Ping(t *testing.T) {
-	dsn, cleanup := startPostgresContainer(t)
+	dsn, cleanup := startRawPostgresContainer(t)
 	defer cleanup()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -62,21 +58,14 @@ func TestNewPool_Ping(t *testing.T) {
 	}
 
 	pool, err := database.NewPool(ctx, cfg)
-	if err != nil {
-		t.Fatalf("NewPool returned error: %v", err)
-	}
-	if pool == nil {
-		t.Fatal("NewPool returned nil pool")
-	}
+	require.NoError(t, err, "NewPool returned error")
+	require.NotNil(t, pool, "NewPool returned nil pool")
 	defer pool.Close()
 
-	if err := pool.Ping(ctx); err != nil {
-		t.Fatalf("pool.Ping failed: %v", err)
-	}
+	require.NoError(t, pool.Ping(ctx), "pool.Ping failed")
 }
 
-// TestNewPool_InvalidDSN verifies that NewPool returns an error containing "pgxpool"
-// when given an invalid DSN string.
+// TestNewPool_InvalidDSN verifies that NewPool returns an error for an invalid DSN.
 func TestNewPool_InvalidDSN(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -88,92 +77,98 @@ func TestNewPool_InvalidDSN(t *testing.T) {
 	}
 
 	pool, err := database.NewPool(ctx, cfg)
-	if err == nil {
-		if pool != nil {
-			pool.Close()
-		}
-		t.Fatal("expected NewPool to return error for invalid DSN, got nil")
-	}
 	if pool != nil {
 		pool.Close()
-		t.Fatal("expected NewPool to return nil pool on error")
 	}
-
-	// The error message should contain "pgxpool" as documented.
-	errMsg := err.Error()
-	if len(errMsg) == 0 {
-		t.Fatal("expected non-empty error message")
-	}
-	t.Logf("got expected error: %v", err)
+	require.Error(t, err, "expected NewPool to return error for invalid DSN")
+	require.Nil(t, pool, "expected nil pool on error")
 }
 
-// TestRunMigrations_AllTables verifies that after RunMigrations on a fresh DB,
-// all 11 expected tables exist in the public schema.
-func TestRunMigrations_AllTables(t *testing.T) {
-	dsn, cleanup := startPostgresContainer(t)
+// TestMigrations verifies that after RunMigrations on a fresh DB, all 11 expected
+// tables exist in the public schema. Uses SetupPostgres which runs migrations internally.
+func TestMigrations(t *testing.T) {
+	ctx := context.Background()
+	pool, cleanup := testutil.SetupPostgres(ctx, t)
 	defer cleanup()
 
-	if err := database.RunMigrations(dsn); err != nil {
-		t.Fatalf("RunMigrations returned error: %v", err)
-	}
-
-	// Open a stdlib sql.DB to query information_schema.
-	db, err := sql.Open("postgres", dsn)
-	if err != nil {
-		t.Fatalf("sql.Open failed: %v", err)
-	}
-	defer db.Close()
-
-	rows, err := db.QueryContext(context.Background(),
-		"SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'")
-	if err != nil {
-		t.Fatalf("query information_schema failed: %v", err)
-	}
+	rows, err := pool.Query(ctx,
+		"SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE' ORDER BY table_name")
+	require.NoError(t, err, "querying information_schema.tables failed")
 	defer rows.Close()
 
 	tables := make(map[string]bool)
 	for rows.Next() {
 		var name string
-		if err := rows.Scan(&name); err != nil {
-			t.Fatalf("scan failed: %v", err)
-		}
+		require.NoError(t, rows.Scan(&name))
 		tables[name] = true
 	}
-	if err := rows.Err(); err != nil {
-		t.Fatalf("rows error: %v", err)
-	}
+	require.NoError(t, rows.Err())
 
 	expected := []string{
-		"users",
-		"wallets",
-		"wallet_transactions",
-		"sudoku_puzzles",
-		"matches",
-		"match_players",
-		"match_moves",
-		"missions",
-		"user_missions",
-		"shop_items",
 		"inventory_items",
+		"match_moves",
+		"match_players",
+		"matches",
+		"missions",
+		"shop_items",
+		"sudoku_puzzles",
+		"user_missions",
+		"users",
+		"wallet_transactions",
+		"wallets",
 	}
 
 	for _, tbl := range expected {
-		if !tables[tbl] {
-			t.Errorf("expected table %q not found after migration; found tables: %v", tbl, tables)
-		}
+		require.True(t, tables[tbl], "expected table %q not found after migration; found tables: %v", tbl, tables)
 	}
 }
 
-// TestRunMigrations_Idempotent verifies that running RunMigrations twice on the
-// same database returns nil error (ErrNoChange is treated as success).
-func TestRunMigrations_Idempotent(t *testing.T) {
-	dsn, cleanup := startPostgresContainer(t)
+// TestSchemaComplete verifies the users table schema matches DATABASE_SCHEMA.md.
+// Checks that all required columns exist and that the id column is of type uuid.
+func TestSchemaComplete(t *testing.T) {
+	ctx := context.Background()
+	pool, cleanup := testutil.SetupPostgres(ctx, t)
 	defer cleanup()
 
-	if err := database.RunMigrations(dsn); err != nil {
-		t.Fatalf("first RunMigrations returned error: %v", err)
+	type columnInfo struct {
+		name     string
+		dataType string
 	}
-	if err := database.RunMigrations(dsn); err != nil {
-		t.Fatalf("second RunMigrations returned error: %v (should be nil, ErrNoChange treated as success)", err)
+
+	rows, err := pool.Query(ctx,
+		`SELECT column_name, data_type
+		 FROM information_schema.columns
+		 WHERE table_schema = 'public' AND table_name = 'users'
+		 ORDER BY column_name`)
+	require.NoError(t, err, "querying information_schema.columns failed")
+	defer rows.Close()
+
+	cols := make(map[string]string)
+	for rows.Next() {
+		var name, dataType string
+		require.NoError(t, rows.Scan(&name, &dataType))
+		cols[name] = dataType
 	}
+	require.NoError(t, rows.Err())
+
+	requiredCols := []string{
+		"id", "username", "avatar_url", "level", "exp",
+		"rank_tier", "rank_point", "created_at", "updated_at",
+	}
+	for _, col := range requiredCols {
+		require.Contains(t, cols, col, "expected column %q not found in users table; found: %v", col, cols)
+	}
+
+	// id must be a UUID column.
+	require.Equal(t, "uuid", cols["id"], "users.id column data_type must be 'uuid'")
+}
+
+// TestMigrations_Idempotent verifies that running RunMigrations twice on the same database
+// returns nil (ErrNoChange is treated as success).
+func TestMigrations_Idempotent(t *testing.T) {
+	dsn, cleanup := startRawPostgresContainer(t)
+	defer cleanup()
+
+	require.NoError(t, database.RunMigrations(dsn), "first RunMigrations call failed")
+	require.NoError(t, database.RunMigrations(dsn), "second RunMigrations call should return nil (ErrNoChange = success)")
 }
