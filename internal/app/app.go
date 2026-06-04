@@ -14,6 +14,10 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 
+	authgoogle "sudoku-pvp/internal/auth/google"
+	"sudoku-pvp/internal/auth/handler"
+	"sudoku-pvp/internal/auth/repository"
+	"sudoku-pvp/internal/auth/service"
 	"sudoku-pvp/internal/config"
 	"sudoku-pvp/internal/database"
 	"sudoku-pvp/internal/logger"
@@ -33,6 +37,7 @@ type App struct {
 	redisClient       *redis.Client
 	mqConn            *rabbitmq.Connection
 	telemetryShutdown func(context.Context) error
+	authHandler       *handler.AuthHandler
 }
 
 // New constructs the App by sequentially:
@@ -69,6 +74,20 @@ func New(cfg *config.Config) (*App, error) {
 		return nil, fmt.Errorf("redis client: %w", err)
 	}
 
+	// 4.5. Wire auth dependencies (after Redis + Postgres, before router setup).
+	jwksCache := authgoogle.NewJWKSCache()
+	authRepo := repository.NewAuthRepo(redisClient)
+	userRepo := repository.NewUserRepo(pool)
+	authSvc := service.NewAuthService(
+		userRepo,
+		authRepo,
+		jwksCache,
+		cfg.Auth.JWTSecret,
+		cfg.Auth.AccessTokenTTL,
+		cfg.Auth.RefreshTokenTTL,
+	)
+	authHndlr := handler.NewAuthHandler(authSvc)
+
 	// 5. RabbitMQ connection (dial + topology declaration + reconnect loop).
 	log := zerolog.Ctx(ctx)
 	mqConn, err := rabbitmq.New(cfg.RabbitMQ.URL, *log)
@@ -85,6 +104,7 @@ func New(cfg *config.Config) (*App, error) {
 		redisClient:       redisClient,
 		mqConn:            mqConn,
 		telemetryShutdown: telShutdown,
+		authHandler:       authHndlr,
 	}
 
 	// 6. Wire Gin router (must happen after infra connects so handler deps are available).
@@ -116,6 +136,23 @@ func (a *App) setupRouter() *gin.Engine {
 	v1 := r.Group("/api/v1")
 	v1.GET("/health", healthHandler)
 
+	// Auth routes (public — no JWT middleware required).
+	auth := v1.Group("/auth")
+	auth.POST("/guest", a.authHandler.GuestLogin)
+	auth.POST("/google", a.authHandler.GoogleLogin)
+	auth.POST("/refresh", a.authHandler.Refresh)
+
+	// Protected routes — JWTMiddleware registered AFTER global Recovery/Tracing/ZerologLogger chain.
+	// T-02-05-05: auth middleware on specific route groups, not global, preserving /health and /metrics.
+	jwtSecret := []byte(a.cfg.Auth.JWTSecret)
+	protected := v1.Group("")
+	protected.Use(middleware.JWTMiddleware(jwtSecret))
+	protected.POST("/auth/logout", a.authHandler.Logout)
+
+	// WebSocket endpoint — WSJWTMiddleware validates token before upgrade (D-19).
+	// Phase 5 will replace wsPlaceholderHandler with the real WebSocket handler.
+	r.GET("/ws/connect", middleware.WSJWTMiddleware(jwtSecret), wsPlaceholderHandler)
+
 	return r
 }
 
@@ -125,6 +162,11 @@ func healthHandler(c *gin.Context) {
 		"status":  "ok",
 		"service": "sudoku-pvp-api",
 	})
+}
+
+// wsPlaceholderHandler responds with 503 until the WebSocket handler is implemented in Phase 5.
+func wsPlaceholderHandler(c *gin.Context) {
+	c.JSON(http.StatusServiceUnavailable, gin.H{"message": "websocket not yet implemented"})
 }
 
 // Run starts the HTTP server on addr (e.g. ":8080").
