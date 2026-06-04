@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -172,9 +173,10 @@ func (s *AuthService) Refresh(ctx context.Context, userID uuid.UUID, providedTok
 		return TokenPair{}, fmt.Errorf("refresh: %w", err)
 	}
 
-	// Compare provided token against stored token.
+	// Compare provided token against stored token using constant-time comparison
+	// to prevent timing side-channel attacks (CR-03).
 	// D-03: mismatch returns an error without revealing the stored token.
-	if providedToken != storedToken {
+	if subtle.ConstantTimeCompare([]byte(providedToken), []byte(storedToken)) != 1 {
 		return TokenPair{}, fmt.Errorf("refresh: invalid refresh token")
 	}
 
