@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 
 	authjwt "sudoku-pvp/internal/auth/jwt"
 	"sudoku-pvp/internal/auth/google"
@@ -130,11 +129,13 @@ func (s *AuthService) GoogleLogin(ctx context.Context, idToken string) (TokenPai
 	var userID uuid.UUID
 	provider, err := s.userRepo.GetUserProviderByProvider(ctx, "google", googleSub)
 	if err != nil {
-		if !errors.Is(err, pgx.ErrNoRows) {
+		// WR-04: repository translates pgx.ErrNoRows → repository.ErrNotFound.
+		if !errors.Is(err, repository.ErrNotFound) {
 			return TokenPair{}, fmt.Errorf("google login: %w", err)
 		}
 		// New Google user — create user + provider + wallet atomically.
-		user, _, createErr := s.userRepo.CreateGoogleUser(ctx, googleSub, email, "Player")
+		// WR-03: generate a unique username instead of hardcoding "Player".
+		user, _, createErr := s.userRepo.CreateGoogleUser(ctx, googleSub, email)
 		if createErr != nil {
 			return TokenPair{}, fmt.Errorf("google login: %w", createErr)
 		}
