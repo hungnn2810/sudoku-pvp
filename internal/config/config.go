@@ -41,10 +41,13 @@ type TelemetryConfig struct {
 // AuthConfig holds JWT signing and token TTL settings.
 // D-04: HS256 signing; secret from env var SUDOKU_AUTH_JWT_SECRET.
 // D-02: AccessTokenTTL default 15 minutes; RefreshTokenTTL default 30 days.
+// GoogleClientID is required for Google ID token audience validation (CR-02).
+// Set via env var SUDOKU_AUTH_GOOGLE_CLIENT_ID.
 type AuthConfig struct {
 	JWTSecret       string        `mapstructure:"jwt_secret"`
 	AccessTokenTTL  time.Duration `mapstructure:"access_token_ttl"`
 	RefreshTokenTTL time.Duration `mapstructure:"refresh_token_ttl"`
+	GoogleClientID  string        `mapstructure:"google_client_id"`
 }
 
 // Config is the root typed configuration struct.
@@ -101,6 +104,9 @@ func Load() (*Config, error) {
 	}
 	if cfg.Auth.JWTSecret == "" {
 		return nil, fmt.Errorf("auth.jwt_secret is required")
+	}
+	if cfg.Auth.GoogleClientID == "" {
+		return nil, fmt.Errorf("auth.google_client_id is required (set SUDOKU_AUTH_GOOGLE_CLIENT_ID)")
 	}
 	if cfg.Auth.AccessTokenTTL <= 0 {
 		cfg.Auth.AccessTokenTTL = 15 * time.Minute

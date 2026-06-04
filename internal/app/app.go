@@ -75,7 +75,7 @@ func New(cfg *config.Config) (*App, error) {
 	}
 
 	// 4.5. Wire auth dependencies (after Redis + Postgres, before router setup).
-	jwksCache := authgoogle.NewJWKSCache()
+	jwksCache := authgoogle.NewJWKSCache(cfg.Auth.GoogleClientID)
 	authRepo := repository.NewAuthRepo(redisClient)
 	userRepo := repository.NewUserRepo(pool)
 	authSvc := service.NewAuthService(

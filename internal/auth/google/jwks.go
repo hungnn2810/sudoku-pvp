@@ -29,6 +29,7 @@ type JWKSResponse struct {
 
 // JWKSCache caches Google public keys in memory with a TTL.
 // D-09: ~1hr TTL; re-fetches on kid mismatch; goroutine-safe via sync.RWMutex.
+// clientID is required for audience validation (CR-02: prevents cross-client token injection).
 type JWKSCache struct {
 	mu        sync.RWMutex
 	keys      map[string]*rsa.PublicKey
@@ -36,16 +37,20 @@ type JWKSCache struct {
 	ttl       time.Duration
 	endpoint  string
 	client    *http.Client
+	clientID  string
 }
 
 // NewJWKSCache creates a JWKSCache with the Google JWKS endpoint and a 1-hour TTL.
+// clientID must be the OAuth 2.0 client ID for this application; it is validated
+// against the "aud" claim of every Google ID token to prevent cross-client injection.
 // The cache is lazily populated on first key lookup.
-func NewJWKSCache() *JWKSCache {
+func NewJWKSCache(clientID string) *JWKSCache {
 	return &JWKSCache{
 		ttl:      time.Hour,
 		endpoint: "https://www.googleapis.com/oauth2/v3/certs",
 		client:   &http.Client{Timeout: 10 * time.Second},
 		keys:     make(map[string]*rsa.PublicKey),
+		clientID: clientID,
 	}
 }
 
@@ -62,6 +67,12 @@ func (c *JWKSCache) fetchLocked(ctx context.Context) error {
 		return fmt.Errorf("jwks fetch: %w", err)
 	}
 	defer resp.Body.Close()
+
+	// WR-01: reject non-200 responses before attempting JSON decode to avoid
+	// overwriting the key cache with an error body that happens to parse as JSON.
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("jwks fetch: unexpected status %d", resp.StatusCode)
+	}
 
 	var jwksResp JWKSResponse
 	if err := json.NewDecoder(resp.Body).Decode(&jwksResp); err != nil {
@@ -166,6 +177,8 @@ func (c *JWKSCache) VerifyGoogleIDToken(ctx context.Context, idToken string) (su
 	}
 
 	// Step 3: parse and verify the full token.
+	// CR-02: enforce audience (must be this app's client ID) and issuer (Google)
+	// to prevent cross-client token injection attacks.
 	claims := &googleClaims{}
 	token, err := jwt.ParseWithClaims(idToken, claims, func(t *jwt.Token) (any, error) {
 		// T-02-04-01: enforce RS256; reject any other algorithm.
@@ -173,7 +186,11 @@ func (c *JWKSCache) VerifyGoogleIDToken(ctx context.Context, idToken string) (su
 			return nil, fmt.Errorf("google id token: unexpected signing method: %v", t.Header["alg"])
 		}
 		return pubKey, nil
-	})
+	},
+		jwt.WithAudience(c.clientID),
+		jwt.WithIssuer("https://accounts.google.com"),
+		jwt.WithExpirationRequired(),
+	)
 	if err != nil {
 		return "", "", fmt.Errorf("google id token: verify: %w", err)
 	}

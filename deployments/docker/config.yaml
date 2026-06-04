@@ -22,5 +22,7 @@ auth:
   jwt_secret: "change-me-in-development"
   access_token_ttl: "15m"
   refresh_token_ttl: "720h"
+  # Set SUDOKU_AUTH_GOOGLE_CLIENT_ID env var or replace this placeholder before running.
+  google_client_id: ""
 
 log_level: debug

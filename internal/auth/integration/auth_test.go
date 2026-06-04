@@ -64,6 +64,7 @@ func setupTestApp(t *testing.T) (*httptest.Server, func()) {
 			JWTSecret:       integrationJWTSecret,
 			AccessTokenTTL:  15 * time.Minute,
 			RefreshTokenTTL: 30 * 24 * time.Hour,
+			GoogleClientID:  "test-google-client-id",
 		},
 		LogLevel: "warn", // suppress noisy startup logs during tests
 	}
