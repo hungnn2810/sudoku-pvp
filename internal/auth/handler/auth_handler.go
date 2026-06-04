@@ -101,15 +101,26 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 func (h *AuthHandler) Logout(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	userIDStr, _ := c.Get("userId")
-	userID, err := uuid.Parse(userIDStr.(string))
+	rawUserID, ok := c.Get("userId")
+	if !ok {
+		common.Error(c, http.StatusInternalServerError, "INTERNAL_ERROR", "userId missing from context")
+		return
+	}
+	userIDStrVal, ok := rawUserID.(string)
+	if !ok {
+		common.Error(c, http.StatusInternalServerError, "INTERNAL_ERROR", "userId context value is not a string")
+		return
+	}
+	userID, err := uuid.Parse(userIDStrVal)
 	if err != nil {
 		common.Error(c, http.StatusBadRequest, "INVALID_TOKEN", "invalid user id in token")
 		return
 	}
 
-	// Ignore error — logout is idempotent; deleting an already-deleted key is fine.
-	_ = h.svc.Logout(ctx, userID)
-
+	if err := h.svc.Logout(ctx, userID); err != nil {
+		logger.FromCtx(ctx).Warn().Err(err).Str("userId", userID.String()).Msg("logout redis error")
+		// Still return 204 to client — best-effort logout per D-06,
+		// but log the operational failure.
+	}
 	c.Status(http.StatusNoContent)
 }
