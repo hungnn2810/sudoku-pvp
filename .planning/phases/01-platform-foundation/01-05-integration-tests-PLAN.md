@@ -5,7 +5,7 @@ plan: 05
 type: execute
 wave: 4
 depends_on:
-  - 01-plan-observability-server
+  - 01-04-observability-server
 objective: "Install testcontainers-go, implement integration test helpers, run integration test suite for Postgres + Redis + RabbitMQ, add smoke test for health endpoint, enforce lint gate"
 files_modified:
   - internal/testutil/containers.go

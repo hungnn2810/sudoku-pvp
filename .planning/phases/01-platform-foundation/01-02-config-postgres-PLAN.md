@@ -5,7 +5,7 @@ plan: 02
 type: execute
 wave: 2
 depends_on:
-  - 01-plan-project-scaffold
+  - 01-01-project-scaffold
 objective: "Wire Viper config, pgxpool connection, golang-migrate runner, and all PostgreSQL migration files per DATABASE_SCHEMA.md"
 files_modified:
   - internal/config/config.go

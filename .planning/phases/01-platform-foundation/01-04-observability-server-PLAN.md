@@ -5,8 +5,8 @@ plan: 04
 type: execute
 wave: 3
 depends_on:
-  - 01-plan-config-postgres
-  - 01-plan-redis-rabbitmq
+  - 01-02-config-postgres
+  - 01-03-redis-rabbitmq
 objective: "Bootstrap zerolog logger, OpenTelemetry (traces + Prometheus metrics), Gin server with middleware chain, health endpoint, and /metrics endpoint"
 files_modified:
   - internal/logger/logger.go

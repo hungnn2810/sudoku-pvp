@@ -5,7 +5,7 @@ plan: 03
 type: execute
 wave: 2
 depends_on:
-  - 01-plan-project-scaffold
+  - 01-01-project-scaffold
 objective: "Wire Redis client with centralized key constants, and RabbitMQ connection recovery + topology provisioning + publisher + consumer skeletons"
 files_modified:
   - internal/redis/client.go
