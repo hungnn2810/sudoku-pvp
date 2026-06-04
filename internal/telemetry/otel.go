@@ -2,6 +2,7 @@ package telemetry
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"go.opentelemetry.io/otel"
@@ -51,8 +52,14 @@ func Bootstrap(ctx context.Context, cfg config.TelemetryConfig) (func(context.Co
 	))
 
 	shutdown := func(ctx context.Context) error {
-		_ = mp.Shutdown(ctx)
-		return tp.Shutdown(ctx)
+		var errs []error
+		if err := mp.Shutdown(ctx); err != nil {
+			errs = append(errs, fmt.Errorf("meter provider shutdown: %w", err))
+		}
+		if err := tp.Shutdown(ctx); err != nil {
+			errs = append(errs, fmt.Errorf("tracer provider shutdown: %w", err))
+		}
+		return errors.Join(errs...)
 	}
 	return shutdown, nil
 }
