@@ -11,6 +11,8 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/testcontainers/testcontainers-go"
 	tcrabbit "github.com/testcontainers/testcontainers-go/modules/rabbitmq"
+
+	"sudoku-pvp/internal/rabbitmq"
 )
 
 func setupRabbitMQ(t *testing.T) (string, func()) {
@@ -52,12 +54,12 @@ func TestDeclareAll_ExchangeExists(t *testing.T) {
 	}
 	defer ch.Close()
 
-	if err := DeclareAll(ch); err != nil {
+	if err := rabbitmq.DeclareAll(ch); err != nil {
 		t.Fatalf("DeclareAll: %v", err)
 	}
 
 	// Passive declare verifies exchange exists without modifying it.
-	if err := ch.ExchangeDeclarePassive(ExchangeGameEvents, amqp.ExchangeTopic,
+	if err := ch.ExchangeDeclarePassive(rabbitmq.ExchangeGameEvents, amqp.ExchangeTopic,
 		true, false, false, false, nil); err != nil {
 		t.Errorf("passive declare game.events: %v", err)
 	}
@@ -79,7 +81,7 @@ func TestDeclareAll_AllQueuesExist(t *testing.T) {
 	}
 	defer ch.Close()
 
-	if err := DeclareAll(ch); err != nil {
+	if err := rabbitmq.DeclareAll(ch); err != nil {
 		t.Fatalf("DeclareAll: %v", err)
 	}
 
@@ -121,12 +123,12 @@ func TestDeclareAll_DLXExists(t *testing.T) {
 	}
 	defer ch.Close()
 
-	if err := DeclareAll(ch); err != nil {
+	if err := rabbitmq.DeclareAll(ch); err != nil {
 		t.Fatalf("DeclareAll: %v", err)
 	}
 
 	// Verify DLX exchange.
-	if err := ch.ExchangeDeclarePassive(ExchangeDLX, amqp.ExchangeDirect,
+	if err := ch.ExchangeDeclarePassive(rabbitmq.ExchangeDLX, amqp.ExchangeDirect,
 		true, false, false, false, nil); err != nil {
 		t.Errorf("passive declare game.dlx: %v", err)
 	}
@@ -137,7 +139,7 @@ func TestDeclareAll_DLXExists(t *testing.T) {
 		t.Fatalf("channel for passive declare: %v", err)
 	}
 	defer pCh.Close()
-	_, err = pCh.QueueDeclarePassive(QueueDead, true, false, false, false, nil)
+	_, err = pCh.QueueDeclarePassive(rabbitmq.QueueDead, true, false, false, false, nil)
 	if err != nil {
 		t.Errorf("game.dead.queue does not exist: %v", err)
 	}
@@ -160,10 +162,10 @@ func TestDeclareAll_Idempotent(t *testing.T) {
 	defer ch.Close()
 
 	// Call DeclareAll twice on the same channel — must return nil both times.
-	if err := DeclareAll(ch); err != nil {
+	if err := rabbitmq.DeclareAll(ch); err != nil {
 		t.Fatalf("DeclareAll first call: %v", err)
 	}
-	if err := DeclareAll(ch); err != nil {
+	if err := rabbitmq.DeclareAll(ch); err != nil {
 		t.Errorf("DeclareAll second call (idempotent): %v", err)
 	}
 }
@@ -173,13 +175,13 @@ func TestPublisher_Publish(t *testing.T) {
 	defer cleanup()
 
 	logger := zerolog.Nop()
-	conn, err := New(amqpURL, logger)
+	conn, err := rabbitmq.New(amqpURL, logger)
 	if err != nil {
 		t.Fatalf("New connection: %v", err)
 	}
 	defer conn.Close()
 
-	pub, err := NewPublisher(conn)
+	pub, err := rabbitmq.NewPublisher(conn)
 	if err != nil {
 		t.Fatalf("NewPublisher: %v", err)
 	}
@@ -199,30 +201,31 @@ func TestConsumer_ReceivesMessage(t *testing.T) {
 	defer cleanup()
 
 	logger := zerolog.Nop()
-	conn, err := New(amqpURL, logger)
+	conn, err := rabbitmq.New(amqpURL, logger)
 	if err != nil {
 		t.Fatalf("New connection: %v", err)
 	}
 	defer conn.Close()
 
-	// Declare topology so queues and bindings exist.
+	// Declare topology so queues and bindings exist (New already calls DeclareAll,
+	// but calling again verifies idempotency in a real scenario).
 	ch, err := conn.Channel()
 	if err != nil {
 		t.Fatalf("setup channel: %v", err)
 	}
-	if err := DeclareAll(ch); err != nil {
+	if err := rabbitmq.DeclareAll(ch); err != nil {
 		ch.Close()
 		t.Fatalf("DeclareAll: %v", err)
 	}
 	ch.Close()
 
-	pub, err := NewPublisher(conn)
+	pub, err := rabbitmq.NewPublisher(conn)
 	if err != nil {
 		t.Fatalf("NewPublisher: %v", err)
 	}
 	defer pub.Close()
 
-	consumer, err := NewConsumer(conn, "ranking.queue")
+	consumer, err := rabbitmq.NewConsumer(conn, "ranking.queue")
 	if err != nil {
 		t.Fatalf("NewConsumer: %v", err)
 	}
