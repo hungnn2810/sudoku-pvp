@@ -62,6 +62,18 @@ Queue key: queue:{region}:{difficulty}:{stake} (Sorted Set, score = join timesta
 ### DEC-016: Admin Roles
 Four roles: SuperAdmin, GameAdmin, SupportAdmin, ReadOnlyAdmin. Audit log covers: admin login, user changes, economy changes, match actions. All immutable append-only records.
 
+## Current State
+
+Phase 2 complete (2026-06-04) — Auth & Identity: guest login, Google OAuth login, JWT session management (sign/validate, HS256, alg-confusion guard), token refresh with rotation, logout, WebSocket JWT middleware, Google JWKS cache (RS256, aud+iss validated). Repository layer uses sqlc-generated types over PostgreSQL and Redis. Security fixes applied (constant-time token comparison, aud/iss validation, domain error translation).
+
+## Validated Requirements
+
+- AuthConfig in config struct with JWT secret + TTLs (validated in Phase 2)
+- Migration 000013 user_providers with FK to users (validated in Phase 2)
+- Repository layer: AuthRepo (Redis), UserRepo (Postgres, transactional) (validated in Phase 2)
+- Auth service: 4 flows — guest login, Google login, refresh, logout (validated in Phase 2)
+- HTTP surface: Gin handlers, JWTMiddleware, WSJWTMiddleware, route registration (validated in Phase 2)
+
 ## Source Documents
 - `docs/PRODUCT_REQUIREMENTS.MD`
 - `docs/BACKEND_ARCHITECTURE.md`
