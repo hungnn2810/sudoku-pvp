@@ -35,11 +35,19 @@ func main() {
 
 	// 2. Run database migrations with a startup timeout.
 	// Fail fast if the DB is unavailable — do not block indefinitely (Pitfall 3).
+	// golang-migrate does not accept a context on Up(), so we wrap in a goroutine
+	// and race it against the timeout.
 	migCtx, migCancel := context.WithTimeout(rootCtx, 30*time.Second)
 	defer migCancel()
-	_ = migCtx // timeout context passed by value; RunMigrations uses its own deadline
-	if err := database.RunMigrations(cfg.Postgres.DSN); err != nil {
-		log.Fatal().Err(err).Msg("database migrations failed")
+	migDone := make(chan error, 1)
+	go func() { migDone <- database.RunMigrations(cfg.Postgres.DSN) }()
+	select {
+	case err := <-migDone:
+		if err != nil {
+			log.Fatal().Err(err).Msg("database migrations failed")
+		}
+	case <-migCtx.Done():
+		log.Fatal().Msg("database migration timed out after 30s")
 	}
 
 	// 3. Initialise the application (telemetry → infra → router).
@@ -54,6 +62,7 @@ func main() {
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		sig := <-quit
+		signal.Stop(quit) // stop further signal deliveries to this channel
 		log.Info().Str("signal", sig.String()).Msg("shutdown signal received")
 		shutCtx, shutCancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer shutCancel()

@@ -4,6 +4,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -27,6 +28,7 @@ import (
 type App struct {
 	cfg               *config.Config
 	router            *gin.Engine
+	srv               *http.Server
 	pool              *pgxpool.Pool
 	redisClient       *redis.Client
 	mqConn            *rabbitmq.Connection
@@ -125,16 +127,26 @@ func healthHandler(c *gin.Context) {
 	})
 }
 
-// Run starts the Gin HTTP server on addr (e.g. ":8080").
-// Blocks until the server returns an error.
+// Run starts the HTTP server on addr (e.g. ":8080").
+// Blocks until the server is shut down or returns an unexpected error.
+// Returns nil on clean shutdown (http.ErrServerClosed) or a non-nil error otherwise.
 func (a *App) Run(addr string) error {
-	return a.router.Run(addr)
+	a.srv = &http.Server{Addr: addr, Handler: a.router}
+	if err := a.srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
+	return nil
 }
 
 // Shutdown gracefully drains all open connections and flushes telemetry.
 // Call with a context derived from a signal handler with a 30-second timeout
 // to avoid hanging the process on exit (Pitfall 6 — pgxpool dangling connections).
+// The HTTP server is stopped first to stop accepting new requests, then
+// infrastructure connections are drained, and finally telemetry is flushed.
 func (a *App) Shutdown(ctx context.Context) {
+	if a.srv != nil {
+		_ = a.srv.Shutdown(ctx)
+	}
 	if a.mqConn != nil {
 		a.mqConn.Close()
 	}
