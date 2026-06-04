@@ -21,6 +21,7 @@ type Connection struct {
 	url    string
 	logger zerolog.Logger
 	closed bool
+	done   chan struct{} // closed by Close() to interrupt the reconnect loop immediately
 }
 
 // New dials the AMQP broker synchronously (fail-fast at startup), declares topology,
@@ -29,7 +30,7 @@ type Connection struct {
 //
 // The AMQP URL must NOT be logged — it contains credentials (T-03-01).
 func New(url string, logger zerolog.Logger) (*Connection, error) {
-	c := &Connection{url: url, logger: logger}
+	c := &Connection{url: url, logger: logger, done: make(chan struct{})}
 
 	conn, err := amqp.Dial(url)
 	if err != nil {
@@ -66,11 +67,14 @@ func (c *Connection) Channel() (*amqp.Channel, error) {
 }
 
 // Close closes the underlying AMQP connection and stops the reconnect loop.
+// The done channel is closed to interrupt any in-progress reconnect delay immediately.
 func (c *Connection) Close() {
 	c.mu.Lock()
 	c.closed = true
 	conn := c.conn
 	c.mu.Unlock()
+
+	close(c.done)
 
 	if conn != nil && !conn.IsClosed() {
 		conn.Close()
@@ -97,17 +101,24 @@ func (c *Connection) declareTopology(conn *amqp.Connection) error {
 // reconnectLoop watches the NotifyClose channel and re-dials on connection loss.
 // It retries indefinitely with a fixed delay between attempts.
 // Credentials are never logged — only connection events are emitted.
+//
+// CR-04 fix: after a successful reconnect, the local conn variable is updated to
+// newConn so that the outer loop's next NotifyClose call is registered on the
+// live connection, not the stale closed one.
+//
+// WR-04 fix: the inter-retry delay uses a select on time.After + c.done so that
+// a Close() call interrupts the sleep immediately rather than blocking up to 5s.
 func (c *Connection) reconnectLoop() {
+	c.mu.RLock()
+	conn := c.conn
+	isClosed := c.closed
+	c.mu.RUnlock()
+
+	if isClosed {
+		return
+	}
+
 	for {
-		c.mu.RLock()
-		conn := c.conn
-		isClosed := c.closed
-		c.mu.RUnlock()
-
-		if isClosed {
-			return
-		}
-
 		// Register for close notifications on the current connection.
 		notify := conn.NotifyClose(make(chan *amqp.Error, 1))
 		<-notify // block until connection drops
@@ -134,7 +145,12 @@ func (c *Connection) reconnectLoop() {
 			if err != nil {
 				// Log only the fact that dial failed, never the URL (T-03-01).
 				c.logger.Error().Err(err).Msg("rabbitmq dial failed, retrying in 5s")
-				time.Sleep(reconnectDelay)
+				// Interruptible delay: Close() signals done immediately.
+				select {
+				case <-time.After(reconnectDelay):
+				case <-c.done:
+					return
+				}
 				continue
 			}
 
@@ -145,7 +161,9 @@ func (c *Connection) reconnectLoop() {
 				c.logger.Error().Err(err).Msg("rabbitmq topology redeclaration failed after reconnect")
 			}
 
-			// Move to watching the new connection.
+			// Update local reference so next iteration's NotifyClose targets the
+			// live connection, not the stale one (CR-04).
+			conn = newConn
 			break
 		}
 	}
